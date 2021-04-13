@@ -1,0 +1,8 @@
+Sequential: Avg=61353.410480ms
+Parallel: Avg=15565.707270ms
+
+Parallel + Reduce Access Time: Avg=13934.733278ms
+Parallel + Reduce Access Time + Transpose + 1D: Avg=13947.231574ms
+
+Parallel + Transpose: Avg=8732.458168ms
+Parallel + Reduce Access Time + Transpose + 2D: Avg=3929.841252ms

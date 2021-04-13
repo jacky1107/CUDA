@@ -1,0 +1,6 @@
+Generate random number time: 19.545309 ms
+Sequential time: 2990895.181131 ms
+Method 1 time: 1039390.210459 ms
+Method 2 time: 1002771.084135 ms
+Method 3 time: 2499786.530524 ms
+Test pass
