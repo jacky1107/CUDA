@@ -2,32 +2,34 @@
 #include <stdlib.h>
 #include <cuda_runtime.h>
 
-#define N 8 //33 * 1024 * 1024
+#define N 12
+#define threadsPerBlock 4
+
 __global__ void dot(int *a, int *b, int *c, int *dot)
 {
-    int i;
     int tid = threadIdx.x;
-    c[tid] = a[tid] * b[tid];
-    // __syncthreads();
-    while (tid < N) {
-        i = blockDim.x / 2;
-        while (i != 0)
-        {
-            if ((tid / blockDim.x) < i)
-            {
-                // c[tid] += c[tid + i];
-                printf("%d %d %d\n", i, tid, tid+i);
-            }
-            __syncthreads();
-            i = i / 2;
-        }
-        printf("%d\n", tid);
-        // if (tid == flag)
-        // {
-        //     *dot = c[tid];
-        // }
-        tid += blockDim.x;
+    int temp_tid = tid;
+    int i;
+    c[tid] = 0;
+    while (temp_tid < N)
+    {
+        printf("%d %d\n", tid, temp_tid);
+        c[tid] += a[temp_tid] * b[temp_tid];
+        temp_tid += blockDim.x;
     }
+    __syncthreads();
+    i = blockDim.x / 2;
+    while (i != 0)
+    {
+        if (tid < i)
+        {
+            c[tid] += c[tid + i]; //reduction add
+        }
+        __syncthreads();
+        i /= 2;
+    }
+    if (tid == 0)
+        *dot = c[tid];
 }
 
 int main(void)
@@ -36,15 +38,8 @@ int main(void)
     int *dev_a, *dev_b, *dev_c, *dev_dot;
     int dotCPU = 0;
     int dotGPU;
-
-    float elapsedTime;
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     a = (int *)malloc(N * sizeof(int));
     b = (int *)malloc(N * sizeof(int));
-
     cudaMalloc((void **)&dev_a, N * sizeof(int));
     cudaMalloc((void **)&dev_b, N * sizeof(int));
     cudaMalloc((void **)&dev_c, N * sizeof(int));
@@ -56,26 +51,35 @@ int main(void)
         a[i] = rand() % 256;
         b[i] = rand() % 256;
     }
-    // copy the arrays 'a' and 'b' to the GPU
+
     cudaMemcpy(dev_a, a, N * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_b, b, N * sizeof(int), cudaMemcpyHostToDevice);
-
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
-    dot<<<1, 4>>>(dev_a, dev_b, dev_c, dev_dot);
+    dot<<<1, threadsPerBlock>>>(dev_a, dev_b, dev_c, dev_dot);
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
+    float elapsedTime;
     cudaEventElapsedTime(&elapsedTime, start, stop);
-    printf("GPU time: %13f msec\n", elapsedTime);
-
-    // copy the array 'dev_dot' back from the GPU to the CPU
+    printf("GPU time: %f msec\n", elapsedTime);
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
     cudaMemcpy(&dotGPU, dev_dot, sizeof(int), cudaMemcpyDeviceToHost);
-
-    // verify that the GPU did the work we requested
     bool success = true;
+    struct timespec t_start, t_end;
+    double elapsedTimeCPU;
+    clock_gettime(CLOCK_REALTIME, &t_start);
     for (int i = 0; i < N; i++)
     {
         dotCPU += a[i] * b[i];
     }
+    clock_gettime(CLOCK_REALTIME, &t_end);
+    elapsedTimeCPU = (t_end.tv_sec - t_start.tv_sec) * 1000.0;
+    elapsedTimeCPU += (t_end.tv_nsec - t_start.tv_nsec) / 1000000.0;
+    printf("CPU elapsedTime: %lf ms\n", elapsedTimeCPU);
+    printf("Speedup: %.2lf\n", elapsedTimeCPU / elapsedTime);
     if (dotCPU != dotGPU)
     {
         printf("Error: dotCPU %d != dotGPU %d\n", dotCPU, dotGPU);
@@ -83,15 +87,9 @@ int main(void)
     }
     if (success)
         printf("Test pass!\n");
-
-    // free the memory allocated on the GPU
     cudaFree(dev_a);
     cudaFree(dev_b);
     cudaFree(dev_c);
     cudaFree(dev_dot);
-
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
-
     return 0;
 }

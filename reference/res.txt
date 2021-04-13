@@ -1,0 +1,9 @@
+Sequential time: 4.900121 ms
+Parallel time: 4.734149 ms
+Parallel reduce + 1d time: 4.543973 ms
+Parallel reduce time: 2.906510 ms
+Parallel transpose_reduce time: 3.974154 ms
+Test pass!!!
+Total of Parallel: 1.000000
+Total of Sequence: 0.000000
+Parallel / Sequence = inf
