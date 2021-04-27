@@ -10,7 +10,6 @@ __global__ void add(int *a, int *b, int *c)
     while (tid < N)
     {
         c[tid] = a[tid] + b[tid];
-        printf("%d\n", tid);
         tid += blockDim.x;
     }
 }
