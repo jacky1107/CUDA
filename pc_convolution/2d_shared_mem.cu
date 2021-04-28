@@ -75,7 +75,7 @@ int main() {
         int pass = 1;
         for(i = 0; i < H; i++){
             for(j = 0; j < W; j++){
-                if(output[i * W + j] != outputGPU[i * W + j]){
+                if((output[i * W + j] - outputGPU[i * W + j]) > 0.00001){
                     pass = 0;
                     break;
                 }
