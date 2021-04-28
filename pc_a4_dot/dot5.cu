@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 
 #define N 33 * 1024 * 1024
-#define THREADSPERBLOCK 32
+#define THREADSPERBLOCK 1024
 #define BLOCKSPERGRID (N + THREADSPERBLOCK - 1) / THREADSPERBLOCK
 
 __global__ void dot(int *a, int *b, int *c)
@@ -12,7 +12,6 @@ __global__ void dot(int *a, int *b, int *c)
     int i;
     __shared__ int cache[THREADSPERBLOCK];
     int cacheIndex = threadIdx.x;
-
     cache[cacheIndex] = a[tid] * b[tid];
     __syncthreads();
 
