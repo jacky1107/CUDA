@@ -4,13 +4,14 @@
 #include <cuda_runtime.h>
 #define H 10000
 #define W 10000
-#define K 10
+#define K 3
 #define N H * W
 #define THREADSPERBLOCK 32
-#define BLOCKSPERGRID (H + THREADSPERBLOCK - 1) / THREADSPERBLOCK
+#define BLOCKSPERGRIDX (H + THREADSPERBLOCK - 1) / THREADSPERBLOCK
+#define BLOCKSPERGRIDY (W + THREADSPERBLOCK - 1) / THREADSPERBLOCK
 
-unsigned char input[N];
 double kernel[K * K];
+unsigned char input[N];
 unsigned char output[N];
 unsigned char outputGPU[N];
 
@@ -59,7 +60,7 @@ int main() {
     cudaMemcpy( d_input, input, N * sizeof(unsigned char), cudaMemcpyHostToDevice );
     cudaMemcpy( d_kernel, kernel, K * K * sizeof(double), cudaMemcpyHostToDevice );
 
-    dim3 dimGrid (BLOCKSPERGRID, BLOCKSPERGRID, 1);
+    dim3 dimGrid (BLOCKSPERGRIDX, BLOCKSPERGRIDY, 1);
     dim3 dimBlock (THREADSPERBLOCK, THREADSPERBLOCK, 1);
 
     cudaEventRecord(start, 0);
@@ -75,13 +76,11 @@ int main() {
         int pass = 1;
         for(i = 0; i < H; i++){
             for(j = 0; j < W; j++){
-                if(output[i * W + j] != outputGPU[i * W + j]){
+                if((output[i * W + j] - outputGPU[i * W + j]) > 0.00001){
                     pass = 0;
                     break;
                 }
-                // printf("%8d ", outputGPU[i * W + j]);
             }
-            // printf("\n");
         }
 
         if(pass == 0) printf("Test Fail!\n");
