@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <cuda_runtime.h>
-#define N 10000000
-#define KN 5000
-#define THREADSPERBLOCK 32
-#define BLOCKSPERGRID 256
+#define N 1024 * 1024 * 128
+#define KN 9
+#define THREADSPERBLOCK 1024
+#define BLOCKSPERGRID (N + THREADSPERBLOCK - 1) / THREADSPERBLOCK
 
 float data[N];
 float kernel[KN];
@@ -14,15 +14,13 @@ float output_from_device[N-KN+1];
 
 __global__ void conv( float *data_cuda, float *kernel, float *output ){
     int tx = threadIdx.x;
-    int ty = blockDim.x * threadIdx.y;
-    int bx = blockDim.x * blockDim.y * blockIdx.x;
-    int by = gridDim.x * (blockDim.x * blockDim.y) * blockIdx.y;
-    int tid = bx + by + tx + ty;
+    int bx = blockDim.x * blockIdx.x;
+    int tid = bx + tx;
     while (tid < N - KN + 1) {
         for(int i = 0; i < KN; i++) {
             output[tid] += data_cuda[tid + i] * kernel[i];
         }
-        tid = tid + gridDim.x * gridDim.y * blockDim.x * blockDim.y;
+        tid = tid + gridDim.x * blockDim.x;
     }
 }
 
@@ -73,17 +71,8 @@ int main(){
     if (cudaMemcpy( d_kernel, kernel, KN * sizeof(float), cudaMemcpyHostToDevice ) != cudaSuccess) return 1;
     if (cudaMemcpy( d_data, data, N * sizeof(float), cudaMemcpyHostToDevice ) != cudaSuccess) return 1;
 
-    int per_threads_x = THREADSPERBLOCK;
-    int per_threads_y = THREADSPERBLOCK;
-    int per_blocks_x = BLOCKSPERGRID;
-    int per_blocks_y = BLOCKSPERGRID;
-    printf("%d %d\n", per_blocks_x, per_blocks_y);
-
-    dim3 dimGrid (per_blocks_x, per_blocks_y, 1);
-    dim3 dimBlock (per_threads_x, per_threads_y, 1);
-
     cudaEventRecord(start, 0);
-    conv<<<dimGrid, dimBlock>>>(d_data, d_kernel, d_output);
+    conv<<<BLOCKSPERGRID, THREADSPERBLOCK>>>(d_data, d_kernel, d_output);
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop); 
     cudaEventElapsedTime(&elapsedTime, start, stop);
