@@ -37,14 +37,30 @@ int main(void)
         a[i] = rand() % N;
         b[i] = rand() % N;
     }
-
-    if (cudaMemcpy(dev_a, a, N * sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess) return 1 ;
-    if (cudaMemcpy(dev_b, b, N * sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess) return 1 ;
     
-    int per_blocks = N / (1024 * 2);
-    printf("Per blocks: %d\n", per_blocks);
+    int *d;
+    d = (int *)malloc(N * sizeof(int));
+    int cpu = true;
+    double elapsedTimeCPU;
+    struct timespec t_start, t_end;
+    if (cpu) {
+        clock_gettime( CLOCK_REALTIME, &t_start);
+        for (int i = 0; i < N; i++) {
+            d[i] = a[i] + b[i];
+        }
+        clock_gettime( CLOCK_REALTIME, &t_end);
+        elapsedTimeCPU = (t_end.tv_sec - t_start.tv_sec) * 1000.0;
+        elapsedTimeCPU += (t_end.tv_nsec - t_start.tv_nsec) / 1000000.0;
+        printf("CPU elapsedTime: %lf ms\n", elapsedTimeCPU);
+    }
 
     cudaEventRecord(start, 0);
+    if (cudaMemcpy(dev_a, a, N * sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess) return 1 ;
+    if (cudaMemcpy(dev_b, b, N * sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess) return 1 ;
+
+    int per_blocks = 32768;// N / (256 * 8);
+    printf("Per blocks: %d\n", per_blocks);
+    
     add<<<per_blocks, 1>>>(dev_a, dev_b, dev_c);
     cudaEventRecord(stop, 0);
     

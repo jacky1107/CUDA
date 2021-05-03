@@ -6,17 +6,17 @@
 #define W 10000
 #define K 3
 #define N H * W
-#define THREADSPERBLOCK 32
+#define THREADSPERBLOCK 16
 #define BLOCKSPERGRIDX (H + THREADSPERBLOCK - 1) / THREADSPERBLOCK
 #define BLOCKSPERGRIDY (W + THREADSPERBLOCK - 1) / THREADSPERBLOCK
 
-double kernel[K * K];
+unsigned char kernel[K * K];
 unsigned char input[N];
 unsigned char output[N];
 unsigned char outputGPU[N];
 
-bool convolve2DSlow(unsigned char *in, unsigned char *out, int dataSizeX, int dataSizeY, double *kernel, int kernelSizeX, int kernelSizeY);
-__global__ void convolve2D_GPU( unsigned char *input, unsigned char *output, double *kernel);
+bool convolve2DSlow(unsigned char *in, unsigned char *out, int dataSizeX, int dataSizeY, unsigned char *kernel, int kernelSizeX, int kernelSizeY);
+__global__ void convolve2D_GPU( unsigned char *input, unsigned char *output, unsigned char *kernel);
 
 int main() {
     int cpu = true;
@@ -41,7 +41,7 @@ int main() {
         kernel[i] = (unsigned char) (rand() % 255 + 1);
     }
 
-    double *d_kernel;
+    unsigned char *d_kernel;
     unsigned char *d_input;
     unsigned char *d_output;
 
@@ -55,10 +55,10 @@ int main() {
     }
 
     cudaMalloc( (void**)&d_input, N * sizeof(unsigned char) );
-    cudaMalloc( (void**)&d_kernel, K * K * sizeof(double) );
+    cudaMalloc( (void**)&d_kernel, K * K * sizeof(unsigned char) );
     cudaMalloc( (void**)&d_output, N * sizeof(unsigned char) );
     cudaMemcpy( d_input, input, N * sizeof(unsigned char), cudaMemcpyHostToDevice );
-    cudaMemcpy( d_kernel, kernel, K * K * sizeof(double), cudaMemcpyHostToDevice );
+    cudaMemcpy( d_kernel, kernel, K * K * sizeof(unsigned char), cudaMemcpyHostToDevice );
 
     dim3 dimGrid (BLOCKSPERGRIDX, BLOCKSPERGRIDY, 1);
     dim3 dimBlock (THREADSPERBLOCK, THREADSPERBLOCK, 1);
@@ -76,7 +76,7 @@ int main() {
         int pass = 1;
         for(i = 0; i < H; i++){
             for(j = 0; j < W; j++){
-                if((output[i * W + j] - outputGPU[i * W + j]) > 0.00001){
+                if((output[i * W + j] != outputGPU[i * W + j])){
                     pass = 0;
                     break;
                 }
@@ -92,7 +92,7 @@ int main() {
     return 0;
 }
 
-__global__ void convolve2D_GPU( unsigned char *input, unsigned char *output, double *kernel) {
+__global__ void convolve2D_GPU( unsigned char *input, unsigned char *output, unsigned char *kernel) {
     int m, n, mm, nn;
     int kCenterX, kCenterY;
 
@@ -133,7 +133,7 @@ __global__ void convolve2D_GPU( unsigned char *input, unsigned char *output, dou
     }
 }
 
-bool convolve2DSlow(unsigned char *in, unsigned char *out, int dataSizeX, int dataSizeY, double *kernel, int kernelSizeX, int kernelSizeY) {
+bool convolve2DSlow(unsigned char *in, unsigned char *out, int dataSizeX, int dataSizeY, unsigned char *kernel, int kernelSizeX, int kernelSizeY) {
     int i, j, m, n, mm, nn;
     int kCenterX, kCenterY;
     double sum;

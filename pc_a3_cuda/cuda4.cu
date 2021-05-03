@@ -8,6 +8,7 @@
 int a[NUM_ROWS][NUM_COLS];
 int b[NUM_ROWS][NUM_COLS];
 int c[NUM_ROWS][NUM_COLS];
+int d[NUM_ROWS][NUM_COLS];
 
 __global__ void add(int *a, int *b, int *c)
 {
@@ -41,6 +42,24 @@ int main(void)
             a[i][j] = rand() % NUM_ROWS + 1;
             b[i][j] = rand() % NUM_COLS + 1;
         }
+    }
+
+    int cpu = true;
+    double elapsedTimeCPU;
+    struct timespec t_start, t_end;
+    if (cpu) {
+        clock_gettime( CLOCK_REALTIME, &t_start);
+        for(int i = 0;i < NUM_ROWS; i++)
+        {
+            for(int j = 0;j < NUM_COLS; j++)
+            {
+                d[i][j] = a[i][j] + b[i][j];
+            }
+        }
+        clock_gettime( CLOCK_REALTIME, &t_end);
+        elapsedTimeCPU = (t_end.tv_sec - t_start.tv_sec) * 1000.0;
+        elapsedTimeCPU += (t_end.tv_nsec - t_start.tv_nsec) / 1000000.0;
+        printf("CPU elapsedTime: %lf ms\n", elapsedTimeCPU);
     }
 
     if (cudaMemcpy(dev_a, a, size, cudaMemcpyHostToDevice) != cudaSuccess) return 1 ;

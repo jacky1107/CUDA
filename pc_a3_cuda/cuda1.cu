@@ -41,6 +41,23 @@ int main(void)
     if (cudaMemcpy(dev_a, a, N * sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess) return 1 ;
     if (cudaMemcpy(dev_b, b, N * sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess) return 1 ;
     
+    int *d;
+    d = (int *)malloc(N * sizeof(int));
+    int cpu = true;
+    double elapsedTimeCPU;
+    struct timespec t_start, t_end;
+    if (cpu) {
+        clock_gettime( CLOCK_REALTIME, &t_start);
+        for (int i = 0; i < N; i++) {
+            d[i] = a[i] + b[i];
+        }
+        clock_gettime( CLOCK_REALTIME, &t_end);
+        elapsedTimeCPU = (t_end.tv_sec - t_start.tv_sec) * 1000.0;
+        elapsedTimeCPU += (t_end.tv_nsec - t_start.tv_nsec) / 1000000.0;
+        printf("CPU elapsedTime: %lf ms\n", elapsedTimeCPU);
+    }
+
+
     int per_threads = 1024;
     printf("Per threads: %d\n", per_threads);
 
@@ -56,7 +73,7 @@ int main(void)
     
     bool success = true;
     for (int i = 0; i < N; i++)
-        if ((a[i] + b[i]) != c[i])
+        if (d[i] != c[i])
         {
             success = false;
             break;
