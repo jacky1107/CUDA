@@ -67,7 +67,8 @@ int main(int argc, char *argv[])
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&elapsedTime1, start, stop);
     printf("GPU transpose time: %13f msec\n", elapsedTime1);
-
+    
+    cudaEventRecord(start, 0);
     mat_mul<<<dimGrid, dimBlock>>>(Md, Td, Pd);
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
