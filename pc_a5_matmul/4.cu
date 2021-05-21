@@ -19,19 +19,24 @@ __device__ int *GetSubMatrix(int *matrix, int blockrow, int blockcol);
 int main(int argc, char *argv[])
 {
     float elapsedTime;
-    
-    for (int i = 0; i < WIDTH; ++i) {
-        for (int j = 0; j < WIDTH; ++j) {
-            M[i][j] = (int) (rand() % 255 + 1);
-            N[i][j] = (int) (rand() % 255 + 1);
+
+    for (int i = 0; i < WIDTH; ++i)
+    {
+        for (int j = 0; j < WIDTH; ++j)
+        {
+            M[i][j] = (int)(rand() % 255 + 1);
+            N[i][j] = (int)(rand() % 255 + 1);
         }
     }
 
     struct timeval starttime, endtime;
     gettimeofday(&starttime, NULL);
-    for (int i = 0; i < WIDTH; ++i) {
-        for (int j = 0; j < WIDTH; ++j) {
-            for (int k = 0; k < WIDTH; ++k) {
+    for (int i = 0; i < WIDTH; ++i)
+    {
+        for (int j = 0; j < WIDTH; ++j)
+        {
+            for (int k = 0; k < WIDTH; ++k)
+            {
                 MxN[i][j] += M[i][k] * N[k][j];
             }
         }
@@ -66,24 +71,28 @@ int main(int argc, char *argv[])
     printf("GPU time: %13f msec\n", elapsedTime);
 
     cudaError_t cuda_err = cudaGetLastError();
-    if (cudaSuccess != cuda_err) {
-        printf("before kernel call: error = %s\n", cudaGetErrorString (cuda_err));
+    if (cudaSuccess != cuda_err)
+    {
+        printf("before kernel call: error = %s\n", cudaGetErrorString(cuda_err));
         exit(1);
     }
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
     cudaMemcpy(P, Pd, size, cudaMemcpyDeviceToHost);
     int pass = 1;
-    for (int i = 0; i < WIDTH; ++i) {
-        for (int j = 0; j < WIDTH; ++j) {
-            if (MxN[i][j] != P[i][j]) {
+    for (int i = 0; i < WIDTH; ++i)
+    {
+        for (int j = 0; j < WIDTH; ++j)
+        {
+            if (MxN[i][j] != P[i][j])
+            {
                 printf("MxN[%d][%d] = %d   P[%d][%d] = %d\n", i, j, MxN[i][j], i, j, P[i][j]);
                 pass = 0;
                 break;
             }
         }
     }
-    printf("Test %s\n", (pass)?"PASSED":"FAILED");
+    printf("Test %s\n", (pass) ? "PASSED" : "FAILED");
     cudaFree(Md);
     cudaFree(Nd);
     cudaFree(Pd);
@@ -95,36 +104,37 @@ __global__ void mat_mul(int *Md, int *Nd, int *Pd)
 {
     int blockRow = blockIdx.y;
     int blockCol = blockIdx.x;
-    
+
     int *Pd_sub = GetSubMatrix(Pd, blockRow, blockCol);
-    
+
     int row = threadIdx.y;
     int col = threadIdx.x;
-    
+
     int Pvalue = 0;
-    
+
     __shared__ int Mds[TILE_WIDTH][TILE_WIDTH];
     __shared__ int Nds[TILE_WIDTH][TILE_WIDTH];
-    
-    for (int m = 0; m < (WIDTH / TILE_WIDTH); ++m) {
+
+    for (int m = 0; m < (WIDTH / TILE_WIDTH); ++m)
+    {
         int *Md_sub = GetSubMatrix(Md, blockRow, m);
         int *Nd_sub = GetSubMatrix(Nd, m, blockCol);
-        
+
         Mds[row][col] = GetElement(Md_sub, row, col);
         Nds[row][col] = GetElement(Nd_sub, row, col);
-        
+
         __syncthreads();
-        
-        for (int k = 0; k < TILE_WIDTH; ++k) {
+
+        for (int k = 0; k < TILE_WIDTH; ++k)
+        {
             Pvalue += Mds[row][k] * Nds[k][col];
         }
-        
+
         __syncthreads();
     }
-    
+
     SetElement(Pd_sub, row, col, Pvalue);
 }
-
 
 __device__ int GetElement(int *matrix, int y, int x)
 {

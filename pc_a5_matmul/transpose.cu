@@ -17,10 +17,12 @@ __device__ int *GetSubMatrix(int *matrix, int blockrow, int blockcol);
 int main(int argc, char *argv[])
 {
     float elapsedTime;
-    
-    for (int i = 0; i < WIDTH; ++i) {
-        for (int j = 0; j < WIDTH; ++j) {
-            N[i][j] = (int) (rand() % 255 + 1);
+
+    for (int i = 0; i < WIDTH; ++i)
+    {
+        for (int j = 0; j < WIDTH; ++j)
+        {
+            N[i][j] = (int)(rand() % 255 + 1);
         }
     }
 
@@ -63,8 +65,9 @@ int main(int argc, char *argv[])
     printf("GPU time: %13f msec\n", elapsedTime);
 
     cudaError_t cuda_err = cudaGetLastError();
-    if (cudaSuccess != cuda_err) {
-        printf("before kernel call: error = %s\n", cudaGetErrorString (cuda_err));
+    if (cudaSuccess != cuda_err)
+    {
+        printf("before kernel call: error = %s\n", cudaGetErrorString(cuda_err));
         exit(1);
     }
     cudaEventDestroy(start);
@@ -72,23 +75,27 @@ int main(int argc, char *argv[])
     cudaMemcpy(T, Td, size, cudaMemcpyDeviceToHost);
 
     int pass = 1;
-    for (int i = 0; i < WIDTH; ++i) {
-        for (int j = 0; j < WIDTH; ++j) {
-            if (N[i][j] != T[i][j]) {
+    for (int i = 0; i < WIDTH; ++i)
+    {
+        for (int j = 0; j < WIDTH; ++j)
+        {
+            if (N[i][j] != T[i][j])
+            {
                 printf("N[%d][%d] = %d   T[%d][%d] = %d\n", i, j, N[i][j], i, j, T[i][j]);
                 pass = 0;
                 break;
             }
         }
     }
-    printf("Test %s\n", (pass)?"PASSED":"FAILED");
+    printf("Test %s\n", (pass) ? "PASSED" : "FAILED");
     cudaFree(Nd);
     cudaFree(Td);
 
     return 0;
 }
 
-__global__ void transpose(int *Nd, int *Td) {
+__global__ void transpose(int *Nd, int *Td)
+{
     int xIndex = blockIdx.x * TILE_WIDTH + threadIdx.x;
     int yIndex = blockIdx.y * TILE_WIDTH + threadIdx.y;
     int index_in = xIndex + WIDTH * yIndex;
