@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define M 1000
-#define K 1000
-#define N 1000
-#define SIZE 1000
+#define M 1024
+#define K 1024
+#define N 1024
+#define SIZE 1024
 #define NUM_THREADS 24
 
 int A[M][K];
@@ -31,8 +31,8 @@ int main(int argc, char *argv[])
     {
         for (j = 0; j < N; j++)
         {
-            A[i][j] = rand() % SIZE;
-            B[i][j] = rand() % SIZE;
+            A[i][j] = rand() % 100;
+            B[i][j] = rand() % 100;
         }
     }
 
@@ -62,14 +62,16 @@ int main(int argc, char *argv[])
 
     // start time
     clock_gettime(CLOCK_REALTIME, &t_start);
-    /*
-	for(i = 0; i < M; i++) {
-		for(j = 0; j < N; j++) {
-			for(k=0; k<K; k++){
-				goldenC[i][j]+=A[i][k] * B[k][j];
-			}
-		}
-	}*/
+    for (i = 0; i < M; i++)
+    {
+        for (j = 0; j < N; j++)
+        {
+            for (k = 0; k < K; k++)
+            {
+                goldenC[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
     // stop time
     clock_gettime(CLOCK_REALTIME, &t_end);
 
@@ -100,16 +102,18 @@ void *worker(void *arg)
     int i, j, k, tid, portion_size, row_start, row_end;
     double sum;
 
-    tid = *(int *)(arg);
+    tid = *(int *)(arg); // get the thread ID assigned sequentially.
     portion_size = SIZE / NUM_THREADS;
     row_start = tid * portion_size;
     row_end = (tid + 1) * portion_size;
 
     for (i = row_start; i < row_end; i++)
-    {
+    { // hold row index of 'matrix1'
         for (j = 0; j < SIZE; j++)
-        {
-            sum = 0;
+        {            // hold column index of 'matrix2'
+            sum = 0; // hold value of a cell
+                     /* one pass to sum the multiplications of corresponding cells
+	 in the row vector and column vector. */
             for (k = 0; k < SIZE; ++k)
             {
                 sum += A[i][k] * B[k][j];

@@ -2,17 +2,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define M 1000
-#define K 1000
-#define N 1000
-#define SIZE 1000
-#define NUM_THREADS 16
-#define TILE_WIDTH 250
+#define M 1024
+#define K 1024
+#define N 1024
+#define SIZE 1024
+#define NUM_THREADS 32
+#define TILE_WIDTH 32
 
 int A[M][K];
 int B[K][N];
 int C[M][N];
 int goldenC[M][N];
+pthread_t tid[SIZE / TILE_WIDTH][SIZE / TILE_WIDTH];       //Thread ID
+pthread_attr_t attr[SIZE / TILE_WIDTH][SIZE / TILE_WIDTH]; //Set of thread attributes
+
 struct v
 {
     int i; /* row */
@@ -23,8 +26,7 @@ void *worker(void *arg);
 int main(int argc, char *argv[])
 {
     int i, j, k;
-    pthread_t tid[SIZE / TILE_WIDTH][SIZE / TILE_WIDTH];       //Thread ID
-    pthread_attr_t attr[SIZE / TILE_WIDTH][SIZE / TILE_WIDTH]; //Set of thread attributes
+
     struct timespec t_start, t_end;
     double elapsedTime;
 
@@ -95,8 +97,9 @@ int main(int argc, char *argv[])
         {
             if (goldenC[i][j] != C[i][j])
             {
-                printf("%d %d\n", i, j);
+                // printf("%d %d\n", i, j);
                 pass = 0;
+                break;
             }
         }
     }

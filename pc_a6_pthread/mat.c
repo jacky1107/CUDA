@@ -5,8 +5,7 @@
 #define M 100
 #define K 100
 #define N 100
-#define SIZE 100
-#define NUM_THREADS 10
+#define NUM_THREADS 1000
 
 int A[M][K];
 int B[K][N];
@@ -17,13 +16,14 @@ struct v
     int i; /* row */
     int j; /* column */
 };
-void *worker(void *arg);
+
+void *runner(void *param); /* the thread */
 
 int main(int argc, char *argv[])
 {
     int i, j, k;
-    pthread_t tid[NUM_THREADS];       //Thread ID
-    pthread_attr_t attr[NUM_THREADS]; //Set of thread attributes
+    pthread_t tid[M][N];       //Thread ID
+    pthread_attr_t attr[M][N]; //Set of thread attributes
     struct timespec t_start, t_end;
     double elapsedTime;
 
@@ -39,17 +39,31 @@ int main(int argc, char *argv[])
     // start time
     clock_gettime(CLOCK_REALTIME, &t_start);
 
-    for (i = 0; i < NUM_THREADS; i++)
+    for (i = 0; i < M; i++)
     {
-        int *dataid;
-        dataid = (int *)malloc(sizeof(int));
-        *dataid = i;
-        pthread_create(&tid[i], NULL, worker, (void *)dataid);
+        for (j = 0; j < N; j++)
+        {
+            //Assign a row and column for each thread
+            struct v *data = (struct v *)malloc(sizeof(struct v));
+            data->i = i;
+            data->j = j;
+            /* Now create the thread passing it data as a parameter */
+            //pthread_t tid;       //Thread ID
+            //pthread_attr_t attr; //Set of thread attributes
+            //Get the default attributes
+            pthread_attr_init(&attr[i][j]);
+            //Create the thread
+            pthread_create(&tid[i][j], &attr[i][j], runner, data);
+            //Make sure the parent waits for all thread to complete
+            //pthread_join(tid, NULL);
+        }
     }
-
-    for (i = 0; i < NUM_THREADS; ++i)
+    for (i = 0; i < M; i++)
     {
-        pthread_join(tid[i], NULL);
+        for (j = 0; j < N; j++)
+        {
+            pthread_join(tid[i][j], NULL);
+        }
     }
     // stop time
     clock_gettime(CLOCK_REALTIME, &t_end);
@@ -97,28 +111,15 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void *worker(void *arg)
+//The thread will begin control in this function
+void *runner(void *param)
 {
-    int i, j, k, tid, portion_size, row_start, row_end;
-    double sum;
-
-    tid = *(int *)(arg); // get the thread ID assigned sequentially.
-    portion_size = SIZE / NUM_THREADS;
-    row_start = tid * portion_size;
-    row_end = (tid + 1) * portion_size;
-
-    for (i = row_start; i < row_end; i++)
-    { // hold row index of 'matrix1'
-        for (j = 0; j < SIZE; j++)
-        {            // hold column index of 'matrix2'
-            sum = 0; // hold value of a cell
-                     /* one pass to sum the multiplications of corresponding cells
-	 in the row vector and column vector. */
-            for (k = 0; k < SIZE; ++k)
-            {
-                sum += A[i][k] * B[k][j];
-            }
-            C[i][j] = sum;
-        }
+    struct v *data = param;
+    int n, sum = 0;
+    for (n = 0; n < K; n++)
+    {
+        sum += A[data->i][n] * B[n][data->j];
     }
+    C[data->i][data->j] = sum;
+    pthread_exit(0);
 }
